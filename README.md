@@ -2,4 +2,4 @@
 
 Updates
 
-personal access token: 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
+personal access token: "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"
