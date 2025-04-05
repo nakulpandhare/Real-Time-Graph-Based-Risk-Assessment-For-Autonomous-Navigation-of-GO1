@@ -3,39 +3,55 @@ import matplotlib.pyplot as plt
 
 plt.ion()  # Enable interactive mode
 
-# Graph definition
-position_nodes = ["Front", "Right", "Left", "Back"]
+# Static layers
+position_nodes = ["Left", "FrontLeft", "Front", "FrontRight", "Right"]
 collision_node = "Collision"
 
+# Create directed graph
 G = nx.DiGraph()
 
+# Add static nodes and edges
+G.add_nodes_from(position_nodes + [collision_node])
+G.add_edges_from([(pos, collision_node) for pos in position_nodes])
+
+# Manually set static layout positions for a tree-like structure (inverted)
+pos = {
+    "Collision": (0, 2),
+    "Front": (0, 1),
+    "FrontLeft": (-1, 1),
+    "Left": (-2, 1),
+    "Right": (2, 1),
+    "FrontRight": (1, 1),
+}
+
 def update_graph(root_nodes):
-    """ Update the graph dynamically with detected root nodes. """
-    G.clear()
+    """Update dynamic root nodes below the static structure in a tree layout."""
+    # Remove old dynamic nodes
+    dynamic_nodes = set(G.nodes()) - set(position_nodes) - {collision_node}
+    G.remove_nodes_from(dynamic_nodes)
 
-    # Connect position nodes to Collision
-    G.add_edges_from([
-        ("Front", "Collision"),
-        ("Right", "Collision"),
-        ("Left", "Collision"),
-        ("Back", "Collision")
-    ])
-
-    # Connect each object (root node) to a position
-    for root, position in root_nodes.items():
+    # Add new root nodes and edges to position nodes
+    y_bottom = 0  # Root nodes level
+    x_offset = -len(root_nodes) / 2  # Spread root nodes horizontally
+    for i, (root, position) in enumerate(root_nodes.items()):
+        G.add_node(root)
         G.add_edge(root, position)
 
-    # Plot graph
+        # Set position just below the corresponding position node
+        parent_pos = pos.get(position, (0, 1))
+        pos[root] = (x_offset + i, y_bottom)
+
+    # Draw updated graph
     plt.clf()
-    pos = nx.spring_layout(G, seed=42)
     nx.draw(
         G, pos,
         with_labels=True,
-        node_size=2000,
-        node_color="lightblue",
+        node_size=2500,
+        node_color="skyblue",
         font_size=10,
-        font_weight="bold"
+        font_weight="bold",
+        arrows=True
     )
-    plt.title("Dynamic Graph for Robot's Risk Assessment")
+    plt.title("Risk Assessment Graph", fontsize=14)
     plt.draw()
     plt.pause(0.001)
