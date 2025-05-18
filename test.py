@@ -15,10 +15,10 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 with open("coco.names", "r") as f:
     class_names = [line.strip() for line in f.readlines()]
 
-allowed_classes = {"person", "bottle", "chair"}
+allowed_classes = {"person", "bottle", "chair", "handbag", "tvmonitor", "fire hydrant", "sports ball", "laptop"}
 
 def camera_loop(object_queue=None, risk_flag=None):
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
         print("❌ Failed to open webcam.")
@@ -34,7 +34,14 @@ def camera_loop(object_queue=None, risk_flag=None):
         height, width = frame.shape[:2]
         third_width = width // 3
 
-        blob = cv2.dnn.blobFromImage(frame, 1/255.0, (416, 416), swapRB=True, crop=False)
+        # Apply brightness/contrast correction
+        alpha = 1.2  # Contrast
+        beta = -40   # Brightness
+        corrected_frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+
+        # Use corrected frame in blob
+        blob = cv2.dnn.blobFromImage(corrected_frame, 1 / 255.0, (416, 416), swapRB=True, crop=False)
+        #blob = cv2.dnn.blobFromImage(frame, 1/255.0, (416, 416), swapRB=True, crop=False)
         net.setInput(blob)
 
         layer_names = net.getLayerNames()
@@ -107,9 +114,6 @@ def camera_loop(object_queue=None, risk_flag=None):
 
         if object_queue is not None:
             object_queue.put(detections_to_send)
-
-        # Optional: Save current frame
-        cv2.imwrite("latest_frame.jpg", frame)
 
         if object_queue is None:
             resized_frame = cv2.resize(frame, (700, 600)) 
